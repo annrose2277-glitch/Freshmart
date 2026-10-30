@@ -1,0 +1,6 @@
+101,Basmati Rice 1kg,Grocery,95.0,45,-1
+102,Fresh Milk 1L,Dairy,28.0,6,2
+103,Wheat Flour 5kg,Grocery,230.0,0,-1
+234,Icecream,Food,60.0,30,-1
+135,Basmati Rice 1kg,Grocery,67.0,3,-1
+106,lipstick,cosmetics,500.0,4,-1

@@ -1,9 +1,9 @@
-package supermarket;
+package supermarket;   // OOP [Package]: groups related classes into a namespace; matches folder src/supermarket
 
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
-import supermarket.model.*;
+import supermarket.model.*;   // OOP [Abstraction/Reuse]: uses the model classes without knowing their internal details
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -12,8 +12,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.Vector;
 
 public class WebServer {
-    // Module 1: Vector class & Static members
+    // OOP [Static member + Generics]: one shared inventory for the whole program; Vector<Product> only accepts Product objects
+    // OOP [Encapsulation]: field is private, so other classes cannot touch it directly
     private static Vector<Product> inventory = new Vector<Product>();
+
+    // OOP [Object creation + Constructor]: new StoreInfo(...) calls the 4-argument constructor
+    // OOP [Association / Has-a]: WebServer HAS-A StoreInfo and HAS-A list of Products
     private static StoreInfo store = new StoreInfo(
         "Fresh Mart Supermarket",
         "Main Road, Thiruvananthapuram",
@@ -21,22 +25,24 @@ public class WebServer {
         "8:00 AM - 9:00 PM"
     );
 
-    // Module 1: Parallel Vectors instead of out-of-syllabus HashMap
+    // Module 1: Parallel Vectors
     private static Vector<String> adminUsers = new Vector<String>();
     private static Vector<String> adminPasswords = new Vector<String>();
     private static int updateCount = 0;
     private static String lastUpdated = "Initial Load";
 
+    // OOP [Exception declaration - throws]: main may raise IOException, so it declares it instead of handling it
     public static void main(String[] args) throws IOException {
         loadData(); // Project Guideline (ii): Permanent plain file storage
         adminUsers.add("admin");
         adminPasswords.add("admin1234");
 
-        // Module 1: Conditional (Ternary) Operator & Wrapper class Integer.parseInt
+        // OOP [Wrapper class + Ternary operator]: Integer.parseInt converts String to int; ?: is a one-line if/else
         String envPort = System.getenv("PORT");
         int port = (envPort != null) ? Integer.parseInt(envPort) : 8080;
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
+        // OOP [Polymorphism via interface reference]: AppHandler object is passed where an HttpHandler is expected
         server.createContext("/", new AppHandler());
         server.setExecutor(null);
         server.start();
@@ -47,6 +53,7 @@ public class WebServer {
         System.out.println("=================================================");
     }
 
+    // OOP [Static method]: belongs to the class, called without creating a WebServer object
     private static void updateTimestamp() {
         updateCount++;
         lastUpdated = "Updated (Change #" + updateCount + ")";
@@ -62,8 +69,10 @@ public class WebServer {
         return -1;
     }
 
-    // Module 2: Static Inner Class & Module 3: Implementing Interface
+    // OOP [Nested (static inner) class]: AppHandler is defined inside WebServer
+    // OOP [Interface implementation]: "implements HttpHandler" forces this class to define handle()
     static class AppHandler implements HttpHandler {
+        // OOP [Method overriding]: replaces the interface's handle() with our own version
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             String message = "";
@@ -115,7 +124,7 @@ public class WebServer {
                     message = "Logged out successfully.";
                 } else if (isLoggedIn) {
                     activeTab = "shopkeeper";
-                    // Module 3: try block, multiple catch clauses, Custom Exception, and finally block
+                    // OOP [Exception handling]: try = risky code, multiple catch = specific to general, finally = always runs
                     try {
                         if ("stock".equals(action)) {
                             int id = Integer.parseInt(getParam(data, "id"));
@@ -123,7 +132,8 @@ public class WebServer {
                             Product p = findProduct(id);
                             if (p != null) {
                                 if ("add".equals(getParam(data, "type"))) {
-                                    p.addStock(q); // Throws Custom StockException if <= 0
+                                    // OOP [Interface method call + Custom exception]: addStock comes from Stockable; throws StockException if q <= 0
+                                    p.addStock(q);
                                     message = "Added " + q + " to " + p.getName();
                                 } else {
                                     p.reduceStock(q); // Throws Custom StockException if insufficient
@@ -147,6 +157,7 @@ public class WebServer {
                                 isError = true;
                             } else {
                                 if (nd != null && !nd.trim().isEmpty()) {
+                                    // OOP [Inheritance + Runtime polymorphism]: a PerishableProduct (child) is stored in a Vector<Product> (parent type)
                                     inventory.add(new PerishableProduct(id, name, cat, pr, q, Integer.parseInt(nd)));
                                 } else {
                                     inventory.add(new Product(id, name, cat, pr, q));
@@ -159,11 +170,14 @@ public class WebServer {
                             int id = Integer.parseInt(getParam(data, "new_id"));
                             Product p = findProduct(id);
                             if (p != null) {
+                                // OOP [Encapsulation - setters]: name/category are changed through setName/setCategory, not directly
                                 p.setName(getParam(data, "nn"));
                                 String cat = getParam(data, "nc");
                                 p.setCategory(cat != null && !cat.trim().isEmpty() ? cat : "General");
+                                // OOP [Method overloading]: the 2-argument updateDetails(price, quantity) is chosen at compile time
                                 p.updateDetails(Double.parseDouble(getParam(data, "np")), Integer.parseInt(getParam(data, "nq")));
 
+                                // OOP [instanceof + Type casting (downcasting)]: check the real type, then cast to use a child-only method
                                 if (p instanceof PerishableProduct) {
                                     String nd = getParam(data, "nd");
                                     if (nd != null && !nd.trim().isEmpty()) {
@@ -187,12 +201,13 @@ public class WebServer {
                             updateTimestamp();
                             saveData();
                         } else if ("store".equals(action)) {
+                            // OOP [Varargs]: update(String... v) accepts any number of Strings; here 4 are passed
                             store.update(getParam(data, "s0"), getParam(data, "s1"), getParam(data, "s2"), getParam(data, "s3"));
                             message = "Store details saved.";
                             updateTimestamp();
                         }
                     } catch (StockException e) {
-                        // Module 3: Custom Exception handling
+                        // OOP [Custom (checked) exception]: our own exception class for stock rule violations
                         message = "StockException: " + e.getMessage();
                         isError = true;
                     } catch (NumberFormatException e) {
@@ -203,7 +218,7 @@ public class WebServer {
                         message = "Error processing request: " + e.getMessage();
                         isError = true;
                     } finally {
-                        // Module 3: finally clause
+                        // OOP [finally clause]: runs whether or not an exception occurred
                         System.out.println("Processed shopkeeper action: " + action);
                     }
                 }
@@ -219,6 +234,7 @@ public class WebServer {
         }
     }
 
+    // OOP [Abstraction/Encapsulation]: callers just ask for a product by id; the search details are hidden inside
     private static Product findProduct(int id) {
         for (int i = 0; i < inventory.size(); i++) {
             Product p = inventory.get(i);
@@ -262,9 +278,11 @@ public class WebServer {
 
     // Project Guideline (ii): Permanent Plain File Storage
     private static void saveData() {
+        // OOP [try-with-resources]: PrintWriter is closed automatically when the block ends
         try (PrintWriter pw = new PrintWriter(new FileWriter("inventory_data.txt"))) {
             for (int i = 0; i < inventory.size(); i++) {
                 Product p = inventory.get(i);
+                // OOP [Run-time type check + Ternary]: only a PerishableProduct has shelf life; others save -1
                 int shelfLife = (p instanceof PerishableProduct) ? ((PerishableProduct) p).getShelfLifeDays() : -1;
                 pw.println(p.getId() + "," + p.getName() + "," + p.getCategory() + "," + p.getPrice() + "," + p.getQuantity() + "," + shelfLife);
             }
@@ -276,6 +294,7 @@ public class WebServer {
     private static void loadData() {
         File file = new File("inventory_data.txt");
         if (!file.exists()) {
+            // OOP [Constructor overloading in use]: the 5-argument Product constructor and the 6-argument PerishableProduct constructor
             inventory.add(new Product(101, "Basmati Rice 1kg", "Grocery", 95, 46));
             inventory.add(new PerishableProduct(102, "Fresh Milk 1L", "Dairy", 28, 6, 2));
             inventory.add(new Product(103, "Wheat Flour 5kg", "Grocery", 230, 0));
@@ -339,6 +358,7 @@ public class WebServer {
         sb.append(".login-box{max-width:350px;margin:40px auto;text-align:center;} .pwd-toggle{font-size:12px;text-align:right;margin-bottom:15px;display:block;} ");
         sb.append("</style></head><body><main>");
 
+        // OOP [Encapsulation - getters]: data is read through getName()/getAddress()/getHours(), never from the private fields
         sb.append("<header><div><h1>").append(store.getName()).append("</h1><div class='sub'>").append(store.getAddress()).append(" &middot; Open: ").append(store.getHours()).append("</div><div class='sub'>Status: ").append(lastUpdated).append("</div></div>");
         sb.append("<nav><button id='tc' onclick='showCust()' ").append(activeTab.equals("customer") ? "class='on'" : "").append(">Customer view</button><button id='ts' onclick='showShop()' ").append(activeTab.equals("shopkeeper") ? "class='on'" : "").append(">Shopkeeper view</button></nav></header>");
 
@@ -360,6 +380,7 @@ public class WebServer {
             Product p = inventory.get(i);
             sb.append("<tr data-name='").append(p.getName().toLowerCase()).append("' data-cat='").append(p.getCategory()).append("' data-status='").append(p.getAvailability()).append("'>");
             sb.append("<td><strong>").append(p.getName()).append("</strong><br><span class='sub'>").append(p.getCategory()).append("</span></td>");
+            // OOP [Static + Final member access]: Item.CURRENCY is a constant shared by the class, accessed through the class name
             sb.append("<td>").append(Item.CURRENCY).append(String.format("%.2f", p.getPrice())).append("</td>");
             sb.append("<td><strong>").append(p.getQuantity()).append("</strong></td>");
             sb.append("<td><span class='").append(statusClass(p.getAvailability())).append("'>").append(p.getAvailability()).append("</span></td></tr>");
@@ -389,8 +410,10 @@ public class WebServer {
             double totalVal = 0;
             for (int i = 0; i < inventory.size(); i++) {
                 Product p = inventory.get(i);
+                // OOP [Final method]: getStockValue() is declared final in Product, so no subclass can change how it is calculated
                 totalVal += p.getStockValue();
                 if (p.getQuantity() == 0) oos++;
+                // OOP [Runtime polymorphism / Overriding]: getStatus() runs Product's or PerishableProduct's version depending on the real object
                 else if (p.getStatus().equals("Few left") || p.getStatus().equals("Expiring soon")) lowOrExp++;
             }
 
